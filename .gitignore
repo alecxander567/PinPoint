@@ -1,0 +1,47 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.pdb
+*.egg-info/
+*.egg
+
+# Django
+*.log
+*.pot
+*.pyc
+db.sqlite3
+media/
+staticfiles/
+
+# Environment
+.env
+*.env
+.env.*
+
+# IDEs and editors
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Unit test / coverage reports
+.coverage
+htmlcov/
+.tox/
+nosetests.xml
+coverage.xml
+
+# Migrations (optional, if you don’t want to track them)
+# Uncomment if you prefer not to commit migration files
+# */migrations/
+
+# Node (if using frontend builds)
+node_modules/
+npm-debug.log
+yarn-error.log
+
+# MacOS
+.DS_Store
+
