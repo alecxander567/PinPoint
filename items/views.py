@@ -10,8 +10,38 @@ import os
 from users.models import User
 
 
+@api_view(["GET"])
+@authentication_classes([])
+def get_user_items(request):
+    """Get all items for a specific user"""
+    owner_id = request.query_params.get("owner_id")
+
+    if not owner_id:
+        return Response(
+            {"error": "owner_id is required"},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    # Validate user exists
+    try:
+        User.objects.get(id=owner_id)
+    except User.DoesNotExist:
+        return Response(
+            {"error": "Invalid owner_id"}, status=status.HTTP_400_BAD_REQUEST
+        )
+
+    # Get all items for this user
+    items = Item.objects.filter(owner_id=owner_id).order_by("-created_at")
+    serializer = ItemSerializer(items, many=True)
+
+    return Response(
+        {"count": items.count(), "items": serializer.data},
+        status=status.HTTP_200_OK,
+    )
+
+
 @api_view(["POST"])
-@authentication_classes([])  
+@authentication_classes([])
 def add_item(request):
     owner_id = request.data.get("owner_id")
     name = request.data.get("name")
