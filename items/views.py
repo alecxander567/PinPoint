@@ -23,6 +23,19 @@ def get_public_id_from_url(url):
 
 @api_view(["GET"])
 @authentication_classes([])
+def get_item_detail(request, item_id):
+    """Get a single item by id for public frontend consumption."""
+    try:
+        item = Item.objects.get(id=item_id)
+    except Item.DoesNotExist:
+        return Response({"error": "Item not found"}, status=status.HTTP_404_NOT_FOUND)
+
+    serializer = ItemSerializer(item)
+    return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+@api_view(["GET"])
+@authentication_classes([])
 def get_user_items(request):
     """Get all items for a specific user"""
     owner_id = request.query_params.get("owner_id")
@@ -55,11 +68,12 @@ def add_item(request):
     owner_id = request.data.get("owner_id")
     name = request.data.get("name")
     description = request.data.get("description", "")
+    owner_fb_account_url = request.data.get("owner_fb_account_url", "")
     image_file = request.FILES.get("image")
 
-    if not all([owner_id, name, image_file]):
+    if not all([owner_id, name, image_file, owner_fb_account_url]):
         return Response(
-            {"error": "owner_id, name, and image are required"},
+            {"error": "owner_id, name, image, and owner_fb_account_url are required"},
             status=status.HTTP_400_BAD_REQUEST,
         )
 
@@ -76,6 +90,7 @@ def add_item(request):
         name=name,
         description=description,
         image_url=image_url,
+        owner_fb_account_url=owner_fb_account_url,
     )
 
     FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:5173")
@@ -108,6 +123,7 @@ def update_item(request, item_id):
 
     name = request.data.get("name")
     description = request.data.get("description")
+    owner_fb_account_url = request.data.get("owner_fb_account_url")
     image_file = request.FILES.get("image")
 
     if name:
@@ -115,6 +131,11 @@ def update_item(request, item_id):
 
     if description is not None:
         item.description = description
+
+    if owner_fb_account_url is not None:
+        item.owner_fb_account_url = (
+            owner_fb_account_url if owner_fb_account_url else None
+        )
 
     if image_file:
         # delete old image

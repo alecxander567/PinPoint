@@ -1,3 +1,10 @@
 from django.contrib import admin
+from .models import Report
 
-# Register your models here.
+
+@admin.register(Report)
+class ReportAdmin(admin.ModelAdmin):
+    list_display = ["id", "item", "landmark", "location", "created_at"]
+    search_fields = ["landmark", "location", "message", "item__name"]
+    list_filter = ["created_at"]
+    readonly_fields = ["id", "created_at"]
