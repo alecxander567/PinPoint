@@ -7,4 +7,5 @@ urlpatterns = [
     path("<uuid:item_id>/", views.get_item_detail, name="get_item_detail"),
     path("<uuid:item_id>/update/", views.update_item),
     path("<uuid:item_id>/delete/", views.delete_item),
+    path("<uuid:item_id>/toggle-lost/", views.toggle_item_lost),
 ]

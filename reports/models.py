@@ -10,6 +10,7 @@ class Report(models.Model):
     landmark_image_url = models.URLField(blank=True)
     location = models.TextField()
     message = models.TextField()
+    is_resolved = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):

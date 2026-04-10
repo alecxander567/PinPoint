@@ -60,6 +60,9 @@ def submit_report(request):
         message=message,
     )
 
+    item.status = "pending"
+    item.save()
+
     serializer = ReportSerializer(report)
     return Response(serializer.data, status=status.HTTP_201_CREATED)
 
@@ -67,18 +70,17 @@ def submit_report(request):
 @api_view(["GET"])
 @authentication_classes([])
 def get_owner_reports(request):
-    """Get all reports for items owned by a specific user."""
     owner_id = request.query_params.get("owner_id")
-
     if not owner_id:
         return Response(
-            {"error": "owner_id is required"},
-            status=status.HTTP_400_BAD_REQUEST,
+            {"error": "owner_id is required"}, status=status.HTTP_400_BAD_REQUEST
         )
 
-    reports = Report.objects.filter(item__owner_id=owner_id).select_related("item")
-    serializer = ReportSerializer(reports, many=True)
+    reports = Report.objects.filter(
+        item__owner_id=owner_id, is_resolved=False
+    ).select_related("item")
 
+    serializer = ReportSerializer(reports, many=True)
     return Response(
         {"count": reports.count(), "reports": serializer.data},
         status=status.HTTP_200_OK,
@@ -145,4 +147,28 @@ def delete_owner_reports(request):
     return Response(
         {"message": "Reports deleted successfully", "deleted_count": deleted_count},
         status=status.HTTP_200_OK,
+    )
+
+
+@api_view(["PATCH"])
+@authentication_classes([])
+def resolve_report(request, report_id):
+    try:
+        report = Report.objects.select_related("item").get(id=report_id)
+    except Report.DoesNotExist:
+        return Response({"error": "Report not found"}, status=404)
+
+    report.is_resolved = True
+    report.save()
+
+    item = report.item
+    item.status = "found"
+    item.save()
+
+    return Response(
+        {
+            "message": "Report resolved, item marked as found",
+            "item_status": item.status,
+        },
+        status=200,
     )

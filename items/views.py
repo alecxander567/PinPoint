@@ -138,7 +138,6 @@ def update_item(request, item_id):
         )
 
     if image_file:
-        # delete old image
         if item.image_url:
             old_public_id = get_public_id_from_url(item.image_url)
             if old_public_id:
@@ -177,3 +176,22 @@ def delete_item(request, item_id):
         {"message": "Item and images deleted successfully"},
         status=status.HTTP_200_OK,
     )
+
+
+@api_view(["PATCH"])
+@authentication_classes([])
+def toggle_item_lost(request, item_id):
+    try:
+        item = Item.objects.get(id=item_id)
+    except Item.DoesNotExist:
+        return Response({"error": "Item not found"}, status=404)
+
+    if item.status == "lost":
+        item.status = "found"
+    elif item.status == "found":
+        item.status = "lost"
+    elif item.status == "pending":
+        return Response({"error": "Cannot toggle while item is pending"}, status=400)
+    item.save()
+
+    return Response({"message": "Status updated", "status": item.status}, status=200)
