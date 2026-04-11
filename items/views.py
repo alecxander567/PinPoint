@@ -195,3 +195,59 @@ def toggle_item_lost(request, item_id):
     item.save()
 
     return Response({"message": "Status updated", "status": item.status}, status=200)
+
+
+@api_view(["GET"])
+@authentication_classes([])
+def get_lost_items(request):
+    owner_id = request.query_params.get("owner_id")
+
+    if not owner_id:
+        return Response(
+            {"error": "owner_id is required"},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    items = Item.objects.filter(owner_id=owner_id, status="lost").order_by(
+        "-created_at"
+    )
+
+    serializer = ItemSerializer(items, many=True)
+
+    return Response(
+        {
+            "count": items.count(),
+            "items": serializer.data,
+        },
+        status=status.HTTP_200_OK,
+    )
+
+
+@api_view(["GET"])
+@authentication_classes([])
+def filter_items(request):
+    owner_id = request.query_params.get("owner_id")
+    status_param = request.query_params.get("status")
+
+    if not owner_id:
+        return Response(
+            {"error": "owner_id is required"},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    queryset = Item.objects.filter(owner_id=owner_id)
+
+    if status_param:
+        queryset = queryset.filter(status=status_param)
+
+    queryset = queryset.order_by("-created_at")
+
+    serializer = ItemSerializer(queryset, many=True)
+
+    return Response(
+        {
+            "count": queryset.count(),
+            "items": serializer.data,
+        },
+        status=status.HTTP_200_OK,
+    )

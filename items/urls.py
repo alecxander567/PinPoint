@@ -8,4 +8,5 @@ urlpatterns = [
     path("<uuid:item_id>/update/", views.update_item),
     path("<uuid:item_id>/delete/", views.delete_item),
     path("<uuid:item_id>/toggle-lost/", views.toggle_item_lost),
+    path("filter/", views.filter_items, name="filter_items"),
 ]

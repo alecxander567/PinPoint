@@ -172,3 +172,31 @@ def resolve_report(request, report_id):
         },
         status=200,
     )
+
+
+@api_view(["GET"])
+@authentication_classes([])
+def get_resolved_reports(request):
+    owner_id = request.query_params.get("owner_id")
+
+    if not owner_id:
+        return Response(
+            {"error": "owner_id is required"},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    reports = (
+        Report.objects.filter(item__owner_id=owner_id, is_resolved=True)
+        .select_related("item")
+        .order_by("-id")
+    )
+
+    serializer = ReportSerializer(reports, many=True)
+
+    return Response(
+        {
+            "count": reports.count(),
+            "reports": serializer.data,
+        },
+        status=status.HTTP_200_OK,
+    )
