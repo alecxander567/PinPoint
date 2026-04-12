@@ -8,4 +8,5 @@ urlpatterns = [
     path("<uuid:item_id>/list/", views.get_item_reports, name="get_item_reports"),
     path("<uuid:report_id>/resolve/", views.resolve_report),
     path("resolved/", views.get_resolved_reports, name="get_resolved_reports"),
+    path("view/<uuid:token>/", views.get_report_by_token, name="get_report_by_token"),
 ]

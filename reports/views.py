@@ -1,4 +1,6 @@
 import cloudinary.uploader
+from django.conf import settings
+from rest_framework import status
 from rest_framework.decorators import api_view, authentication_classes
 from rest_framework.response import Response
 from rest_framework import status
@@ -64,7 +66,9 @@ def submit_report(request):
     item.save()
 
     serializer = ReportSerializer(report)
-    return Response(serializer.data, status=status.HTTP_201_CREATED)
+    data = serializer.data
+    data["owner_view_url"] = f"{settings.FRONTEND_URL}/report/view/{report.view_token}"
+    return Response(data, status=status.HTTP_201_CREATED)
 
 
 @api_view(["GET"])
@@ -200,3 +204,15 @@ def get_resolved_reports(request):
         },
         status=status.HTTP_200_OK,
     )
+
+
+@api_view(["GET"])
+@authentication_classes([])
+def get_report_by_token(request, token):
+    try:
+        report = Report.objects.select_related("item").get(view_token=token)
+    except Report.DoesNotExist:
+        return Response({"error": "Report not found"}, status=404)
+
+    serializer = ReportSerializer(report)
+    return Response(serializer.data)

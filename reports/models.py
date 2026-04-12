@@ -11,6 +11,7 @@ class Report(models.Model):
     location = models.TextField()
     message = models.TextField()
     is_resolved = models.BooleanField(default=False)
+    view_token = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):

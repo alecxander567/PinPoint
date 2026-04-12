@@ -1,4 +1,5 @@
 from rest_framework import serializers
+
 from .models import Report
 
 
@@ -19,6 +20,8 @@ class ReportSerializer(serializers.ModelSerializer):
             "landmark_image_url",
             "location",
             "message",
+            "is_resolved",
+            "view_token",
             "created_at",
             "item_name",
             "item_image_url",
@@ -28,6 +31,8 @@ class ReportSerializer(serializers.ModelSerializer):
         read_only_fields = [
             "id",
             "created_at",
+            "is_resolved",
+            "view_token",
             "item_name",
             "item_image_url",
             "item_qr_code_url",

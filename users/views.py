@@ -1,18 +1,17 @@
-from rest_framework.decorators import api_view
+from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework import status
-from .models import User, PasswordResetToken
+from .models import User, PasswordResetToken, BugReport
 from .serializers import UserSerializer
-import bcrypt
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.core.mail import EmailMessage
 from django.conf import settings
 import logging
+from rest_framework.permissions import IsAuthenticated
 
 logger = logging.getLogger(__name__)
 
 
-# Sign Up
 @api_view(["POST"])
 def signup(request):
     serializer = UserSerializer(data=request.data)
@@ -24,7 +23,6 @@ def signup(request):
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-# Log In
 @api_view(["POST"])
 def login(request):
     email = request.data.get("email")
@@ -37,7 +35,7 @@ def login(request):
             {"error": "Invalid email or password"}, status=status.HTTP_401_UNAUTHORIZED
         )
 
-    if bcrypt.checkpw(password.encode("utf-8"), user.password.encode("utf-8")):
+    if user.check_password(password):
         refresh = RefreshToken.for_user(user)
         return Response(
             {
@@ -53,13 +51,11 @@ def login(request):
     )
 
 
-# Log Out
 @api_view(["POST"])
 def logout(request):
     return Response({"message": "Logout successful, delete the token on client side."})
 
 
-# Forgot Password
 @api_view(["POST"])
 def forgot_password(request):
     email = request.data.get("email")
@@ -72,10 +68,8 @@ def forgot_password(request):
     try:
         user = User.objects.get(email=email)
 
-        # Invalidate old unused tokens
         PasswordResetToken.objects.filter(user=user, used=False).delete()
 
-        # Create new reset token
         reset_token = PasswordResetToken.objects.create(user=user)
 
         reset_link = f"{settings.FRONTEND_URL}/reset-password?token={reset_token.token}"
@@ -135,11 +129,7 @@ def reset_password(request):
         )
 
     try:
-        hashed_password = bcrypt.hashpw(
-            new_password.encode("utf-8"), bcrypt.gensalt()
-        ).decode("utf-8")
-
-        reset_token.user.password = hashed_password
+        reset_token.user.set_password(new_password)
         reset_token.user.save()
 
         reset_token.used = True
@@ -149,3 +139,76 @@ def reset_password(request):
     except Exception as e:
         print("Unexpected error during reset:", str(e))
         return Response({"error": "Server error during password reset."}, status=500)
+
+
+@api_view(["PATCH"])
+@permission_classes([IsAuthenticated])
+def update_profile(request):
+    user = request.user
+    user.name = request.data.get("name", user.name)
+    user.messenger_link = request.data.get("messenger_link", user.messenger_link)
+
+    new_password = request.data.get("password")
+    if new_password:
+        if len(new_password) < 8:
+            return Response(
+                {"error": "Password must be at least 8 characters."}, status=400
+            )
+        user.set_password(new_password)
+
+    user.save()
+    return Response({"message": "Profile updated successfully."})
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def get_profile(request):
+    user = request.user
+
+    return Response(
+        {
+            "id": str(user.id),
+            "name": user.name,
+            "email": user.email,
+            "messenger_link": user.messenger_link,
+            "created_at": user.created_at,
+        }
+    )
+
+
+@api_view(["DELETE"])
+@permission_classes([IsAuthenticated])
+def delete_account(request):
+    user = request.user
+
+    user.delete()
+
+    return Response(
+        {"message": "Account deleted successfully"}, status=status.HTTP_200_OK
+    )
+
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def report_bug(request):
+    user = request.user
+    message = request.data.get("message")
+
+    if not message:
+        return Response(
+            {"error": "Message is required"}, status=status.HTTP_400_BAD_REQUEST
+        )
+
+    bug = BugReport.objects.create(user=user, message=message)
+
+    EmailMessage(
+        subject=f"Bug Report from {user.name}",
+        body=(f"From: {user.name} ({user.email})\n\n" f"Message:\n{message}"),
+        from_email=settings.DEFAULT_FROM_EMAIL,
+        to=[settings.EMAIL_HOST_USER],  # your email
+    ).send(fail_silently=True)
+
+    return Response(
+        {"message": "Bug report submitted successfully", "bug_id": str(bug.id)},
+        status=status.HTTP_201_CREATED,
+    )
