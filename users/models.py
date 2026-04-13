@@ -26,6 +26,7 @@ class User(AbstractBaseUser):
     email = models.EmailField(unique=True)
     messenger_link = models.URLField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
+    fcm_token = models.TextField(null=True, blank=True)
 
     USERNAME_FIELD = "email"
     REQUIRED_FIELDS = ["name"]

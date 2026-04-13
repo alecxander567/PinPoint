@@ -7,6 +7,8 @@ from rest_framework import status
 from items.models import Item
 from .models import Report
 from .serializers import ReportSerializer
+from core.notifications import notify_owner
+from core.notifications import notify_owner
 
 
 def get_public_id_from_url(url):
@@ -64,6 +66,8 @@ def submit_report(request):
 
     item.status = "pending"
     item.save()
+
+    notify_owner(item)
 
     serializer = ReportSerializer(report)
     data = serializer.data

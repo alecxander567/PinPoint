@@ -212,3 +212,12 @@ def report_bug(request):
         {"message": "Bug report submitted successfully", "bug_id": str(bug.id)},
         status=status.HTTP_201_CREATED,
     )
+
+
+@api_view(["POST"])
+def save_fcm_token(request):
+    user = User.objects.get(id=request.data["user_id"])
+    user.fcm_token = request.data["token"]
+    user.save()
+
+    return Response({"message": "Token saved"})

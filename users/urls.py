@@ -11,4 +11,5 @@ urlpatterns = [
     path("profile/update/", views.update_profile, name="update_profile"),
     path("profile/delete/", views.delete_account, name="delete_account"),
     path("bug-report/", views.report_bug, name="report_bug"),
+    path("save-fcm-token/", views.save_fcm_token),
 ]
