@@ -93,6 +93,9 @@ def forgot_password(request):
     except User.DoesNotExist:
         logger.info(f"Password reset requested for non-existent email: {email}")
         pass
+    except Exception as e:
+        logger.error(f"SMTP ERROR: {str(e)}")
+        return Response({"error": str(e)}, status=500)
 
     return Response(
         {"message": "If that email is registered, a reset link has been sent."}
