@@ -4,12 +4,16 @@ from rest_framework import status
 from .models import User, PasswordResetToken, BugReport
 from .serializers import UserSerializer
 from rest_framework_simplejwt.tokens import RefreshToken
-from django.core.mail import EmailMessage
 from django.conf import settings
 import logging
+import os
+import resend
+
 from rest_framework.permissions import IsAuthenticated
 
 logger = logging.getLogger(__name__)
+
+resend.api_key = os.getenv("RESEND_API_KEY")
 
 
 @api_view(["POST"])
@@ -74,19 +78,20 @@ def forgot_password(request):
 
         reset_link = f"{settings.FRONTEND_URL}/reset-password?token={reset_token.token}"
 
-        email_message = EmailMessage(
-            subject="Reset your Item Finder password",
-            body=(
-                f"Hi {user.name},\n\n"
-                f"Click the link below to reset your password. "
-                f"This link expires in 1 hour.\n\n"
-                f"{reset_link}\n\n"
-                f"If you didn't request this, you can safely ignore this email."
-            ),
-            from_email=settings.DEFAULT_FROM_EMAIL,
-            to=[user.email],
+        resend.Emails.send(
+            {
+                "from": "onboarding@resend.dev",
+                "to": user.email,
+                "subject": "Reset your PinPoint password",
+                "text": (
+                    f"Hi {user.name},\n\n"
+                    f"Click the link below to reset your password. "
+                    f"This link expires in 1 hour.\n\n"
+                    f"{reset_link}\n\n"
+                    f"If you didn't request this, you can safely ignore this email."
+                ),
+            }
         )
-        email_message.send()
 
         logger.info(f"Password reset link sent to {email} | Token: {reset_token.token}")
 
@@ -94,7 +99,7 @@ def forgot_password(request):
         logger.info(f"Password reset requested for non-existent email: {email}")
         pass
     except Exception as e:
-        logger.error(f"SMTP ERROR: {str(e)}")
+        logger.error(f"EMAIL ERROR: {str(e)}")
         return Response({"error": str(e)}, status=500)
 
     return Response(
@@ -134,10 +139,8 @@ def reset_password(request):
     try:
         reset_token.user.set_password(new_password)
         reset_token.user.save()
-
         reset_token.used = True
         reset_token.save()
-
         return Response({"message": "Password reset successful. You can now log in."})
     except Exception as e:
         print("Unexpected error during reset:", str(e))
@@ -167,7 +170,6 @@ def update_profile(request):
 @permission_classes([IsAuthenticated])
 def get_profile(request):
     user = request.user
-
     return Response(
         {
             "id": str(user.id),
@@ -183,9 +185,7 @@ def get_profile(request):
 @permission_classes([IsAuthenticated])
 def delete_account(request):
     user = request.user
-
     user.delete()
-
     return Response(
         {"message": "Account deleted successfully"}, status=status.HTTP_200_OK
     )
@@ -204,12 +204,14 @@ def report_bug(request):
 
     bug = BugReport.objects.create(user=user, message=message)
 
-    EmailMessage(
-        subject=f"Bug Report from {user.name}",
-        body=(f"From: {user.name} ({user.email})\n\n" f"Message:\n{message}"),
-        from_email=settings.DEFAULT_FROM_EMAIL,
-        to=[settings.EMAIL_HOST_USER],  # your email
-    ).send(fail_silently=True)
+    resend.Emails.send(
+        {
+            "from": "onboarding@resend.dev",
+            "to": settings.EMAIL_HOST_USER,
+            "subject": f"Bug Report from {user.name}",
+            "text": f"From: {user.name} ({user.email})\n\nMessage:\n{message}",
+        }
+    )
 
     return Response(
         {"message": "Bug report submitted successfully", "bug_id": str(bug.id)},
@@ -222,5 +224,4 @@ def save_fcm_token(request):
     user = User.objects.get(id=request.data["user_id"])
     user.fcm_token = request.data["token"]
     user.save()
-
     return Response({"message": "Token saved"})
