@@ -17,10 +17,17 @@ Including another URLconf
 
 from django.contrib import admin
 from django.urls import path, include
+from django.http import JsonResponse
+
+
+def ping(request):
+    return JsonResponse({"status": "ok"})
+
 
 urlpatterns = [
     path("admin/", admin.site.urls),
     path("api/users/", include("users.urls")),
     path("api/items/", include("items.urls")),
     path("api/reports/", include("reports.urls")),
+    path("ping/", ping),
 ]
