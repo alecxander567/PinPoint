@@ -67,7 +67,7 @@ A web-based application that helps users recover lost items using QR codes. When
 
 ## 📄 License
 
-This project is open-source and available under the MIT License.
+This project is MIT License.
 
 ---
 
